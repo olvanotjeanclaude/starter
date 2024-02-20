@@ -4,6 +4,5 @@ export class Player {
         this.id = null;
         this.score = 0;
         this.realScore = 0;
-        this.active = false;
     }
 }

@@ -1,18 +1,22 @@
 export class DiceGame {
-    constructor() {
+    constructor(config = {
+        max_score: 20,
+        score_should_reset: 1,
+        image_sizes: 6,
+    }) {
         this.isGameStarting = false;
         this.players = [];
-        this.currentPlayer = this.players[0] || null;
-        this.images = this.generateDice();
-        this.shouldReset = 1;
-        this.diceImage = document.querySelector(".dice");
+        this.currentPlayerIndex = 0;
+        this.currentPlayer = this.players[this.currentPlayerIndex] || null;
+        this.images = [];
+        this.diceImage = null;
+        this.config = config;
     }
 
     run() {
         this.createField();
+        this.images = this.generateDice();
         this.diceImage?.classList.add("hidden");
-        this.generateDice();
-
         this.mountHTML();
     }
 
@@ -20,25 +24,26 @@ export class DiceGame {
         const newGameBtn = document.querySelector(".btn--new");
         const rollDiceBtn = document.querySelector(".btn--roll");
         const holdBtn = document.querySelector(".btn--hold");
-        const imageDiceElement = document.querySelector(".dice");
 
-        newGameBtn.addEventListener("click", e =>this.reset);
+        newGameBtn.addEventListener("click", e => this.reset(e));
 
-        rollDiceBtn.addEventListener("click",e => this.rollDiceClicked());
+        rollDiceBtn.addEventListener("click", e => this.rollDiceClicked(e));
+
+        holdBtn.addEventListener("click", e => this.holdClicked(e));
     }
 
     createField() {
         const playerFieldHTML = this.players.map(player => this.fieldTemplate(player)).join("");
 
         document.getElementById("game").innerHTML = playerFieldHTML + this.actionTemplate();
+
+        this.diceImage = document.querySelector(".dice");
     }
 
     reset() {
         this.resetPlayerScore();
 
         this.diceImage.classList.remove("hidden");
-
-        console.log("ok")
 
         this.isGameStarting = true;
     }
@@ -51,53 +56,71 @@ export class DiceGame {
     }
 
     setCurrentPlayer(player) {
-        this.currentPlayer.active = false;
-        this.currentPlayer = player;
-        this.currentPlayer.active = true;
-        document.querySelector(`.player--${currentPlayer.id}`)?.classList.add("player--active");
+        if (player) {
+            this.currentPlayer = player;
+        }
+        else {
+            this.currentPlayer = this.players[0];
+        }
+
+        this.currentPlayerIndex = this.currentPlayer.id - 1;
+
+        this.removeClassPlayerActive();
+
+        document.querySelector(`.player--${this.currentPlayer.id}`)?.classList.add("player--active");
+    }
+
+    removeClassPlayerActive() {
+        [...document.querySelectorAll(".player")].map(playerEl => {
+            if (playerEl.classList.contains("player--active")) {
+                playerEl.classList.remove("player--active")
+            }
+        });
     }
 
     rollDiceClicked() {
-        if (!this.isGameStarting) return;
+        if (!this.isGameStarting) return this.gameShouldStart();
 
-        const currentDice = this.pickRandomImages(images);
+        const currentDice = this.pickRandomImages();
 
-        document.querySelector(".dice").setAttribute("src", currentDice.src);
+        this.diceImage.setAttribute("src", currentDice.src);
 
-        if (currentDice.id == this.shouldReset) {
+        if (currentDice.id == this.config.score_should_reset) {
+            this.currentPlayer.realScore += this.currentPlayer.score;
             this.currentPlayer.score = 0;
-            this.swichCurrentPlayer();
+            this.updateScore(this.currentPlayer);
+            this.moveToNextPlayer();
         }
         else {
             this.currentPlayer.score += currentDice.id;
+            this.updateScore(this.currentPlayer);
         }
+    }
 
-        this.updateScore();
+    playerWinner(player) {
+        document.querySelector(`.player--${player.id}`).classList.add("player--winner");
     }
 
     holdClicked() {
-        if (!this.isGameStarting) return;
+        if (!this.isGameStarting) return this.gameShouldStart();
 
-        const currentPlayer = this.currentPlayer;
+        this.currentPlayer.realScore += this.currentPlayer.score;
 
-        currentPlayer.realScore += currentPlayer.score;
-        document.getElementById(`score--${currentPlayer.id}`).innerHTML = currentPlayer.realScore;
-        swichCurrentPlayer();
+        this.updateScore(this.currentPlayer);
+
+        this.moveToNextPlayer();
     }
 
-    swichCurrentPlayer() {
-        const tempPlayer = this.currentPlayer;
-
-        if (this.currentPlayer.id == 0) {
-            this.currentPlayer = player2
+    gameShouldStart() {
+        if (!this.isGameStarting) {
+            alert("Please click the new game");
         }
-        else {
-            this.currentPlayer = player1
-        }
-
-        document.querySelector(`.player--${tempPlayer.id}`).classList.remove("player--active");
-        document.querySelector(`.player--${currentPlayer.id}`).classList.add("player--active");
     }
+
+    moveToNextPlayer() {
+        this.setCurrentPlayer(this.players[this.currentPlayerIndex + 1]);
+    }
+
 
     fieldTemplate(player) {
         return `<section class="player player--${player.id}">
@@ -111,14 +134,14 @@ export class DiceGame {
     }
 
     actionTemplate() {
-        return `<img src="dice-1.png" alt="Playing dice" class="dice hidden" />
+        return `<img src="dice-1.png" alt="Playing dice" class="dice" />
                 <button class="btn btn--new">🔄 New game</button>
                 <button class="btn btn--roll">🎲 Roll dice</button>
                 <button class="btn btn--hold">📥 Hold</button> `
     }
 
     generateDice() {
-        return Array.from({ length: 6 }, (_, num) => {
+        return Array.from({ length: this.config.image_sizes}, (_, num) => {
             return {
                 id: num + 1,
                 src: `dice-${num + 1}.png`
@@ -127,20 +150,17 @@ export class DiceGame {
     }
 
     pickRandomImages() {
-        const randomIndex = generateRandomNumber(0, 5);
-        return [randomIndex];
+        const randomIndex = this.generateRandomNumber(0, this.config.image_sizes - 1);
+        return this.images[randomIndex];
     }
 
     generateRandomNumber(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    updateScore() {
-        document.getElementById(`current--${currentPlayer.id}`).innerHTML = currentPlayer.score;
-
-        if (currentPlayer.realScore < MAX_SCORE) {
-            document.querySelector(`.player--${currentPlayer.id}`).classList.add("player--winner");
-        }
+    updateScore(player) {
+        document.getElementById(`current--${player.id}`).innerHTML = player.score;
+        document.getElementById(`score--${player.id}`).innerHTML = player.realScore;
     }
 
     resetPlayerScore() {
