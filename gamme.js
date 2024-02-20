@@ -1,81 +1,88 @@
-const MAX_SCORE =100;
+const MAX_SCORE = 100;
 const shouldReset = 1;
+let isGameStarting = false;
 
-const images = Array.from({length:6},(_,num) =>{
-    return{
-        id:num+1,
-        src: `dice-${num+1}.png`
+const images = Array.from({ length: 6 }, (_, num) => {
+    return {
+        id: num + 1,
+        src: `dice-${num + 1}.png`
     }
 });
 
-//{id:1,src:dice-1.png}
-
 const player1 = {
-    id:0,
-    score:0,
-    realScore:0
+    id: 0,
+    score: 0,
+    realScore: 0
 };
 
 const player2 = {
-    id:1,
-    score:0,
-    realScore:0
+    id: 1,
+    score: 0,
+    realScore: 0
 };
 
 let currentPlayer = player1;
 
-const newGame = document.querySelector(".btn--new");
-const rollDice = document.querySelector(".btn--roll");
-const hold = document.querySelector(".btn--hold");
+const newGameBtn = document.querySelector(".btn--new");
+const rollDiceBtn = document.querySelector(".btn--roll");
+const holdBtn = document.querySelector(".btn--hold");
 const currentImage = document.querySelector(".dice");
 
-run();
 
+newGameBtn.addEventListener("click", initGame);
 
-newGame.addEventListener("click",initGame);
+rollDiceBtn.addEventListener("click", () => {
+    if (!isGameStarting) return;
 
-rollDice.addEventListener("click",()=>{
     const currentDice = pickRandomImages(images);
-    // const temporaryPlayer = currentPlayer;
-    currentImage.setAttribute("src",  currentDice.src);
+    currentImage.setAttribute("src", currentDice.src);
 
-    if(currentDice.id == shouldReset){
-         currentPlayer.score =0;
-         swichCurrentPlayer();
+    if (currentDice.id == shouldReset) {
+        currentPlayer.score = 0;
+        swichCurrentPlayer();
     }
-    else{
+    else {
         currentPlayer.score += currentDice.id;
     }
 
     updateScore();
 })
 
-hold.addEventListener("click",() =>{
-    currentPlayer.realScore+= currentPlayer.score;
+holdBtn.addEventListener("click", () => {
+    if (!isGameStarting) return;
+
+    currentPlayer.realScore += currentPlayer.score;
     document.getElementById(`score--${currentPlayer.id}`).innerHTML = currentPlayer.realScore;
+    swichCurrentPlayer();
 })
 
 
-function run(){
-   currentImage.classList.add("hidden");
+function run() {
+    currentImage.classList.add("hidden");
 }
 
-function updateScore(){
+function updateScore() {
     document.getElementById(`current--${currentPlayer.id}`).innerHTML = currentPlayer.score;
+
+    if (currentPlayer.realScore < MAX_SCORE) {
+        document.querySelector(`.player--${currentPlayer.id}`).classList.add("player--winner");
+    }
 }
 
 
-function initGame(){
+function initGame() {
+    document.querySelector(`.player--${currentPlayer.id}`)?.classList.add("player--active");
     resetPlayerScore();
     currentPlayer = player1;
     currentImage.classList.remove("hidden");
+    isGameStarting = true;
 }
 
-function resetPlayerScore(){
-    player1.score= 0;
-    player1.realScore= 0;
-    player1.score= 0;
-    player2.realScore= 0;
+function resetPlayerScore() {
+    player1.score = 0;
+    player1.realScore = 0;
+    player2.score = 0;
+    player2.realScore = 0;
 
     document.getElementById(`current--${player1.id}`).innerText = player1.score;
     document.getElementById(`current--${player2.id}`).innerText = player2.score;
@@ -84,27 +91,26 @@ function resetPlayerScore(){
 }
 
 
-function pickRandomImages(){
-   const index = generateRandomNumber(0,5);
-   return images[index];
+function pickRandomImages() {
+    const index = generateRandomNumber(0, 5);
+    return images[index];
 }
 
 
-function swichCurrentPlayer(){
+function swichCurrentPlayer() {
     const tempPlayer = currentPlayer;
 
-    if(currentPlayer.id==0){
+    if (currentPlayer.id == 0) {
         currentPlayer = player2
     }
-    else{
+    else {
         currentPlayer = player1
     }
 
-    document.querySelector(".player").classList.remove("player--active");
-
-    document.querySelector(`.player--${currentPlayer.id}`);
+    document.querySelector(`.player--${tempPlayer.id}`).classList.remove("player--active");
+    document.querySelector(`.player--${currentPlayer.id}`).classList.add("player--active");
 }
-    
+
 
 function generateRandomNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
