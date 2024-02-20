@@ -64,7 +64,7 @@ function run() {
 function updateScore() {
     document.getElementById(`current--${currentPlayer.id}`).innerHTML = currentPlayer.score;
 
-    if (currentPlayer.realScore < MAX_SCORE) {
+    if (currentPlayer.realScore >= MAX_SCORE) {
         document.querySelector(`.player--${currentPlayer.id}`).classList.add("player--winner");
     }
 }
